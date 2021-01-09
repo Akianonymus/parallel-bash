@@ -3,6 +3,21 @@
 
 set -o errexit -o noclobber -o pipefail
 
+_cleanup() {
+    {
+        export abnormal_exit && if [[ -n ${abnormal_exit} ]]; then
+            printf "\n\n%s\n" "Script exited manually."
+            # this kills the script including all the child processes
+            kill -- -$$ &
+        fi
+    } 2>| /dev/null || :
+    return 0
+}
+
+trap 'abnormal_exit="1"; exit' INT TERM
+trap '_cleanup' EXIT
+trap '' TSTP # ignore ctrl + z
+
 func() {
     printf "1\n"
 }
