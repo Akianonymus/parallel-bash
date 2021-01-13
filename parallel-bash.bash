@@ -59,16 +59,26 @@ _setup_arguments::parallel-bash() {
     { command -v mktemp 1>| /dev/null && TMPFILE_PARALLEL_BASH="$(mktemp -u)"; } || TMPFILE_PARALLEL_BASH="${PWD}/.$(_t="$(printf "%(%s)T\\n" "-1")" && printf "%s\n" "$((_t * _t))").LOG"
 
     # grab all the inputs from the pipe
-    # increment the count var to count the total no of args
-    # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
-    INPUT_ARRAY="$(
-        count=0
-        while read -r line || { printf "%s\n" "$((count))" >| "${TMPFILE_PARALLEL_BASH}.arraycount" && break; }; do
-            [[ -z ${line} ]] && continue
-            printf "%s\n" "${line}"
-            : "$((count += 1))"
-        done
-    )"
+    # use mapfile if available, it's quite faster than a while loop
+    if [[ ${BASH_VERSINFO:-0} -ge 4 ]]; then
+        # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
+        INPUT_ARRAY="$({
+            mapfile -t input
+            printf "%s\n" "${input[@]}"
+            printf "%s\n" "${#input[@]}" >| "${TMPFILE_PARALLEL_BASH}.arraycount"
+        })"
+    else
+        # increment the count var to count the total no of args
+        # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
+        INPUT_ARRAY="$(
+            count=0
+            while read -r line || { printf "%s\n" "$((count))" >| "${TMPFILE_PARALLEL_BASH}.arraycount" && break; }; do
+                [[ -z ${line} ]] && continue
+                printf "%s\n" "${line}"
+                : "$((count += 1))"
+            done
+        )"
+    fi
 
     TOTAL_INPUT="$(< "${TMPFILE_PARALLEL_BASH}.arraycount")" || return 1
     export TOTAL_INPUT && rm -f "${TMPFILE_PARALLEL_BASH}.arraycount"
