@@ -72,9 +72,9 @@ _setup_arguments::parallel-bash() {
         # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
         INPUT_ARRAY="$(
             count=0
-            while read -r line || { printf "%s\n" "$((count))" >| "${TMPFILE_PARALLEL_BASH}.arraycount" && break; }; do
+            while read -r line || { printf "%s\n" "${input1}" && printf "%s\n" "$((count))" >| "${TMPFILE_PARALLEL_BASH}.arraycount" && break; }; do
                 [[ -z ${line} ]] && continue
-                printf "%s\n" "${line}"
+                input1+="${line}"$'\n'
                 : "$((count += 1))"
             done
         )"
