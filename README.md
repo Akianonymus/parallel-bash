@@ -65,26 +65,29 @@ Terminal output on running `benchmark.bash`:
 
 ```
 ./benchmark.bash 100
+
+Bash version: 4.4.20(1)-release
+
 Total parallel threads: 100
 Total arguments to test: 100000
 
 Running benchmark for parallel-bash..
 
-real    0m3.699s
-user    0m4.118s
-sys     0m0.913s
+real	0m2.789s
+user	0m3.212s
+sys 	0m0.761s
 
 Running benchmark for xargs..
 
-real    0m38.642s
-user    1m48.122s
-sys     0m30.651s
+real	0m39.873s
+user	1m51.808s
+sys 	0m31.845s
 
 Running benchmark for gnu parallel..
 
-real    2m34.377s
-user    3m6.125s
-sys     1m41.492s
+real	3m11.139s
+user	3m31.104s
+sys 	1m53.784s
 ```
 
 ### Benchmark 2
@@ -105,26 +108,30 @@ Memory: 2008MiB / 3593MiB
 Terminal output on running `benchmark.bash`:
 
 ```
+./benchmark.bash 10
+
+Bash version: 5.0.18(1)-release
+
 Total parallel threads: 10
 Total arguments to test: 10000
 
 Running benchmark for parallel-bash..
 
-real    0m2.352s
-user    0m2.960s
-sys     0m0.247s
+real    0m1.637s
+user    0m1.903s
+sys     0m0.157s
 
 Running benchmark for xargs..
 
-real    0m38.568s
-user    1m14.353s
-sys     0m36.303s
+real    0m38.065s
+user    1m12.877s
+sys     0m35.557s
 
 Running benchmark for gnu parallel..
 
-real    1m51.539s
-user    2m26.633s
-sys     1m42.377s
+real    1m40.060s
+user    2m19.720s
+sys     1m25.670s
 ```
 
 ## Compatibility

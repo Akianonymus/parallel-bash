@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # 1st arg as no of jobs, optional
 
+! [[ ${BASH_VERSINFO:-0} -ge 3 ]] &&
+    printf "Bash version lower than 3.x not supported.\n" && return 1
+
 set -o errexit -o noclobber -o pipefail
 
 _cleanup() {
@@ -27,6 +30,7 @@ declare jobs="${1:-10}"
 
 declare total_args="$((jobs * 1000))"
 
+printf "%s\n\n" "Bash version: ${BASH_VERSION}"
 printf "%s\n" "Total parallel threads: ${jobs}"
 printf "%s\n" "Total arguments to test: ${total_args}"
 
