@@ -40,7 +40,7 @@ printf "\n%s\n" "Running benchmark for parallel-bash.."
 time (printf "%s\n" "${args}" | bash parallel-bash.bash -p "${jobs}" -c func {}) 1> /dev/null
 
 printf "\n%s\n" "Running benchmark for xargs.."
-time (printf "%b\n" "${args}" | xargs -P "${jobs}" -n 1 -I {} bash -c 'func {}') 1> /dev/null
+time (printf "%b\n" "${args}" | xargs -P "${jobs}" -I {} -n 1 bash -c 'func {}') 1> /dev/null
 
 printf "\n%s\n" "Running benchmark for gnu parallel.."
 time (printf "%s\n" "${args}" | parallel -j "${jobs}" func {}) 1> /dev/null
