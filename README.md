@@ -164,25 +164,9 @@ e.g: `something | parallel-bash -p 5 -c echo {} {}`
 
     -h | --help => Show this help.
 
-To use in scripts, there are two ways:
-
-<strong>Call it as a command</strong>
-
 Put parallel-bash.bash in an executable path.
 
 e.g: `mv parallel-bash.bash /usr/bin/`
-
-<strong>Call it as a function</strong>
-
-Copy parallel-bash function from `parallel-bash.function.bash` file and copy in your script or just source the file.
-
-The difference between the contents of `parallel-bash.bash` and `parallel-bash.function.bash` is that the latter doesn't do the trap cleanups and doesn't do checks for bash version.
-
-`parallel-bash.function.bash` also just contains everything in a single function.
-
-If it is used as a function, then traps and cleanup should be handled in the main script.
-
-See `_cleanup` function in `parallel-bash.bash` for more info.
 
 ## Reporting Issues
 
