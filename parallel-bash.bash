@@ -91,45 +91,47 @@ _setup_arguments::parallel-bash() {
 }
 
 _process_arguments::parallel-bash() {
-    declare job no_of_jobs_final
+    declare job=0 no_of_jobs_final=0 cmds=""
     # no of parallel jobs shouldn't exceed no of input
     no_of_jobs_final="$((NO_OF_JOBS > TOTAL_INPUT ? TOTAL_INPUT : NO_OF_JOBS))"
 
-    # If CMD_ARRAY array contains {}, then replace it with the input
+    # a wrapper function
+    # takes 1 argument
+    _execute::_process_arguments::parallel-bash() {
+        # job, no_of_jobs_final ans cmds is from parent function
+        ((job += 1))
+        # not using arrays because it is slow
+        # `;` is added to last to prevent stopping the execution because of a failed process
+        export "cmds+=${1:-:} ; "
+        # when job == no_of_jobs_final, then reset it and then again start appending from job 1
+        [[ ${job} -eq "${no_of_jobs_final}" ]] && {
+            job=0
+            # all hail the eval lord
+            eval "${cmds}" &
+            cmds=""
+        }
+    }
+
     # iterate over both input arrays
-    # first add commands to var CMD_1, then CMD_2 and so on
+    # then pass formed string for _execute::_process_arguments::parallel-bash
     case "${CMD_ARRAY}" in
         *'{}'*)
             while read -r -u 4 line; do
-                ((job += 1))
-                # not using arrays because it is slow
-                # `;` is added to last to prevent stopping the execution because of a failed process
-                export "CMD_${job}+=${CMD_ARRAY//\{\}/\"${line}\"} ; "
-                # when job == no_of_jobs_final, then reset it and then again start appending from job 1
-                : "$((job == no_of_jobs_final ? (job = 0) : job))"
+                # If CMD_ARRAY array contains {}, then replace it with the input
+                _execute::_process_arguments::parallel-bash "${CMD_ARRAY//\{\}/\"${line}\"}"
             done 4<<< "${INPUT_ARRAY}"
             ;;
         *)
             while read -r -u 4 line; do
-                ((job += 1))
-                # not using arrays because it is slow
-                # `;` is added to last to prevent stopping the execution because of a failed process
-                export "CMD_${job}+=${CMD_ARRAY} \"${line}\" ; "
-                # when job == no_of_jobs_final, then reset it and then again start appending from job 1
-                : "$((job == no_of_jobs_final ? (job = 0) : job))"
+                _execute::_process_arguments::parallel-bash "${CMD_ARRAY} \"${line}\""
             done 4<<< "${INPUT_ARRAY}"
             ;;
     esac
-    # the above process just store all the commands in a single var, and then to be executed later with eval
 
-    # evaluate the CMD_${job} vars and append it all to CMDS variable
-    for ((i = 1; i < ((no_of_jobs_final + 1)); i++)); do
-        tmp="CMD_${i}" CMDS+="{ ${!tmp} } & " # do indirect expansion to call the original value
-    done
-
+    # this is probably pointless as the processes might be already completed before even reaching this point
+    # todo: fix this
     declare status
-    # all hail the eval lord
-    (eval "${CMDS}" && wait) || status=1
+    wait || status=1
 
     return "${status:-0}"
 }
@@ -159,7 +161,7 @@ parallel-bash() {
     trap '_cleanup::parallel-bash' EXIT
     trap '' TSTP # ignore ctrl + z
 
-    declare NO_OF_JOBS=1 CMD_ARRAY INPUT_ARRAY CMDS MAIN_PID TOTAL_INPUT
+    declare NO_OF_JOBS=1 CMD_ARRAY INPUT_ARRAY MAIN_PID TOTAL_INPUT
     _setup_arguments::parallel-bash "${@}" || return 1
 
     export MAIN_PID="$$"

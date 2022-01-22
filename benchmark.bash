@@ -36,11 +36,22 @@ printf "%s\n" "Total arguments to test: ${total_args}"
 
 args="$(eval printf "%s\\\n " "{1..${total_args}}")"
 
-printf "\n%s\n" "Running benchmark for parallel-bash.."
-time (printf "%s\n" "${args}" | bash parallel-bash.bash -p "${jobs}" -c func {}) 1> /dev/null
+_check_test() {
+    declare output=0 name="${1:-}" && shift
 
-printf "\n%s\n" "Running benchmark for xargs.."
-time (printf "%b\n" "${args}" | xargs -P "${jobs}" -I {} -n 1 bash -c 'func {}') 1> /dev/null
+    printf "\n%s\n" "Running benchmark for ${name}.."
+    output="$(time (printf "%s\n" "${args}" | "${@}") | wc -l)"
 
-printf "\n%s\n" "Running benchmark for gnu parallel.."
-time (printf "%s\n" "${args}" | parallel -j "${jobs}" func {}) 1> /dev/null
+    if [[ ${output} = "${total_args}" ]]; then
+        printf "\n%s\n" "Benchmark ran successfully."
+    else
+        printf "\n%s\n" "Error: Benchmark failed for ${name}."
+        printf "%s\n" "  Expected ${total_args} outputs, got ${output}"
+    fi
+}
+
+_check_test "parallel-bash" bash parallel-bash.bash -p "${jobs}" -c func {}
+
+_check_test "xargs" xargs -P "${jobs}" -I {} -n 1 bash -c 'func {}'
+
+_check_test "gnu parallel" parallel -j "${jobs}" func {}
