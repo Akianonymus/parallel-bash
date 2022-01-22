@@ -158,6 +158,8 @@ e.g: `something | parallel-bash -p 5 -c echo {} {}`
 
 <strong>Optional flags</strong>
 
+    -k | -kc | --kill-children-processes => Kill children processes created when command is manually interrupted.
+
     -p | --parallel-jobs => Number of parallel processes. Default value is 1.
 
     -D | --debug => Show debug trace.

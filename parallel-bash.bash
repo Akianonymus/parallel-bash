@@ -22,6 +22,8 @@ Required flags:
 
 Optional flags:
 
+    -k | -kc | --kill-children-processes => Kill children processes created when command is manually interrupted.
+
     -p | --parallel-jobs => Number of parallel processes. Default value is 1.
 
     -D | --debug => Show debug trace.
@@ -49,6 +51,9 @@ _setup_arguments::parallel-bash() {
                 # all the args given after -c is taken as command input
                 for cmd in "${@}"; do CMD_ARRAY+="\"${cmd}\"  "; done
                 break
+                ;;
+            -k | -kc | --kill-children-processes)
+                KILL_CHILD_PROCESSES=true
                 ;;
             *) printf '%s: %s: Unknown option\nTry '"%s -h/--help"' for more information.\n' "${0##*/}" "${1}" "${0##*/}" && return 1 ;;
         esac
@@ -141,9 +146,14 @@ _cleanup::parallel-bash() {
         rm -f "${TMPFILE_PARALLEL_BASH}.arraycount"
 
         export abnormal_exit && if [[ -n ${abnormal_exit} ]]; then
-            printf "\n\n%s\n" "Script exited manually."
-            # this kills the script including all the child processes
-            kill -- -$$ &
+            printf "\n\n%s\n" "parallel-bash exited manually."
+            if [[ ${KILL_CHILD_PROCESSES} = "true" ]]; then
+                printf "%s\n" "Killing child processes."
+                # this kills the script including all the child processes
+                kill -- -$$ &
+            else
+                printf "%s\n" "Not killing child processes."
+            fi
         fi
     } 2>| /dev/null || :
     return 0
@@ -161,7 +171,7 @@ parallel-bash() {
     trap '_cleanup::parallel-bash' EXIT
     trap '' TSTP # ignore ctrl + z
 
-    declare NO_OF_JOBS=1 CMD_ARRAY INPUT_ARRAY MAIN_PID TOTAL_INPUT
+    declare NO_OF_JOBS=1 CMD_ARRAY INPUT_ARRAY MAIN_PID TOTAL_INPUT KILL_CHILD_PROCESSES
     _setup_arguments::parallel-bash "${@}" || return 1
 
     export MAIN_PID="$$"
