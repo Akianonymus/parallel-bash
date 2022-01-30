@@ -34,7 +34,7 @@ Now, to use a function parallely with parallel-bash:
 main() { echo "${1}" ;}
 export -f main
 
-printf "%b\n" {1..1000} | ./parallel-bash -p 10 -c main {}
+printf "%b\n" {1..1000} | ./parallel-bash -p 10 main {}
 ```
 
 Here, it will just spawn 100 background processes, which is obviously have a lot less of overhead than spawning a whole shell.
@@ -140,21 +140,17 @@ Should work on bash version >= 3.
 
 ## Usage
 
-`some_input | parallel-bash -p 5 -c echo`
+`some_input | parallel-bash -p 5 echo`
 
-`parallel-bash -p 5 -c echo < some_file`
+`parallel-bash -p 5 echo < some_file`
 
-`parallel-bash -p 5 -c echo <<< 'some string'`
+`parallel-bash -p 5 echo <<< 'some string'`
 
 The keyword '{}' can be used to for command inputs.
 
 Either a command or a function can be used. For functions, need to export it first.
 
-e.g: `something | parallel-bash -p 5 -c echo {} {}`
-
-<strong>Required flags</strong>
-
-    -c | --commands => Commands to use. This flag should be used at last as all the arguments given after this flag are treated as commands input.
+e.g: `something | parallel-bash -p 5 echo {}`
 
 <strong>Optional flags</strong>
 

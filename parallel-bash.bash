@@ -6,19 +6,15 @@ _usage::parallel-bash() {
     printf "%b\n" \
         "Parallel processing commands in pure bash ( like xargs )
 
-Usage: something | ${0##*/} -p 5 -c echo
-       ${0##*/} -p 5 -c echo < some_file
-       ${0##*/} -p 5 -c echo <<< 'some string'
+Usage: something | ${0##*/} -p 5 echo
+       ${0##*/} -p 5 echo < some_file
+       ${0##*/} -p 5 echo <<< 'some string'
 
 The keyword '{}' can be used to for command inputs.
 
 Either a command or a function can be used. For functions, need to export it first.
 
-e.g: something | ${0##*/} -p 5 -c echo {} {}
-
-Required flags:
-
-    -c | --commands => Commands to use. This flag should be used at last as all the arguments given after this flag are treated as commands input.
+e.g: something | ${0##*/} -p 5 echo {}
 
 Optional flags:
 
@@ -45,17 +41,15 @@ _setup_arguments::parallel-bash() {
                     return 1
                 fi
                 ;;
-            -c | --commands)
-                shift
+            -k | -kc | --kill-children-processes)
+                KILL_CHILD_PROCESSES=true
+                ;;
+            *)
                 CMD_ARRAY=""
                 # all the args given after -c is taken as command input
                 for cmd in "${@}"; do CMD_ARRAY+="\"${cmd}\"  "; done
                 break
                 ;;
-            -k | -kc | --kill-children-processes)
-                KILL_CHILD_PROCESSES=true
-                ;;
-            *) printf '%s: %s: Unknown option\nTry '"%s -h/--help"' for more information.\n' "${0##*/}" "${1}" "${0##*/}" && return 1 ;;
         esac
         shift
     done
