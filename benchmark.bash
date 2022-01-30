@@ -50,7 +50,7 @@ _check_test() {
     fi
 }
 
-_check_test "parallel-bash" bash parallel-bash.bash -p "${jobs}" func {}
+_check_test "parallel-bash" bash parallel-bash.bash -k -p "${jobs}" func {}
 
 _check_test "xargs" xargs -P "${jobs}" -I {} -n 1 bash -c 'func {}'
 
