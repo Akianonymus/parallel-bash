@@ -60,45 +60,11 @@ _setup_arguments::parallel-bash() {
         shift
     done
 
-    # create a tempfile to store total input count
-    { command -v mktemp 1>| /dev/null && TMPFILE_PARALLEL_BASH="$(mktemp -u)"; } || TMPFILE_PARALLEL_BASH="${PWD}/.$(_t="$(printf "%(%s)T\\n" "-1")" && printf "%s\n" "$((_t * _t))").LOG"
-
-    # grab all the inputs from the pipe
-    # use mapfile if available, it's quite faster than a while loop
-    if [[ ${BASH_VERSINFO:-0} -ge 4 ]]; then
-        # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
-        INPUT_ARRAY="$({
-            mapfile -t input
-            printf "%s\n" "${input[@]}"
-            printf "%s\n" "${#input[@]}" >| "${TMPFILE_PARALLEL_BASH}.arraycount"
-        })"
-    else
-        # increment the count var to count the total no of args
-        # lastly, print it to "${TMPFILE_PARALLEL_BASH}.arraycount" so we can later use it, this prevents the usage of wc -l
-        INPUT_ARRAY="$(
-            count=0
-            while read -r line || { printf "%s\n" "${input1}" && printf "%s\n" "$((count))" >| "${TMPFILE_PARALLEL_BASH}.arraycount" && break; }; do
-                [[ -z ${line} ]] && continue
-                input1+="${line}"$'\n'
-                : "$((count += 1))"
-            done
-        )"
-    fi
-
-    TOTAL_INPUT="$(< "${TMPFILE_PARALLEL_BASH}.arraycount")" || return 1
-    export TOTAL_INPUT && rm -f "${TMPFILE_PARALLEL_BASH}.arraycount"
-
-    # both INPUT_ARRAY and CMD_ARRAY should be fulfilled
-    [[ -z ${INPUT_ARRAY} ]] && printf "%s\n" "Error: Provide some input." && return 1
-    [[ -z ${CMD_ARRAY} ]] && printf "%s\n" "Error: Provide some commands using -c flag." && return 1
-
     return 0
 }
 
 _process_arguments::parallel-bash() {
-    declare job=0 no_of_jobs_final=0 cmds=""
-    # no of parallel jobs shouldn't exceed no of input
-    no_of_jobs_final="$((NO_OF_JOBS > TOTAL_INPUT ? TOTAL_INPUT : NO_OF_JOBS))"
+    declare job=0 cmds=""
 
     # a wrapper function
     # takes 1 argument
@@ -109,7 +75,7 @@ _process_arguments::parallel-bash() {
         # `;` is added to last to prevent stopping the execution because of a failed process
         export "cmds+=${1:-:} ; "
         # when job == no_of_jobs_final, then reset it and then again start appending from job 1
-        [[ ${job} -eq "${no_of_jobs_final}" ]] && {
+        [[ ${job} -eq "${NO_OF_JOBS}" ]] && {
             job=0
             # all hail the eval lord
             eval "${cmds}" &
@@ -121,15 +87,15 @@ _process_arguments::parallel-bash() {
     # then pass formed string for _execute::_process_arguments::parallel-bash
     case "${CMD_ARRAY}" in
         *'{}'*)
-            while read -r -u 4 line; do
+            while IFS= read -r line; do
                 # If CMD_ARRAY array contains {}, then replace it with the input
                 _execute::_process_arguments::parallel-bash "${CMD_ARRAY//\{\}/\"${line}\"}"
-            done 4<<< "${INPUT_ARRAY}"
+            done
             ;;
         *)
-            while read -r -u 4 line; do
+            while IFS= read -r line; do
                 _execute::_process_arguments::parallel-bash "${CMD_ARRAY} \"${line}\""
-            done 4<<< "${INPUT_ARRAY}"
+            done
             ;;
     esac
 
@@ -143,17 +109,20 @@ _process_arguments::parallel-bash() {
 
 _cleanup::parallel-bash() {
     {
-        rm -f "${TMPFILE_PARALLEL_BASH}.arraycount"
-
+        # print messages if exited manually
         export abnormal_exit && if [[ -n ${abnormal_exit} ]]; then
-            printf "\n\n%s\n" "parallel-bash exited manually."
-            if [[ ${KILL_CHILD_PROCESSES} = "true" ]]; then
-                printf "%s\n" "Killing child processes."
-                # this kills the script including all the child processes
-                kill -- -$$ &
-            else
-                printf "%s\n" "Not killing child processes."
-            fi
+            p_print() { printf "%b\n" "${1}"; }
+        else
+            p_print() { :; }
+        fi
+
+        p_printf "\n\nparallel-bash exited manually."
+        if [[ ${KILL_CHILD_PROCESSES} = "true" ]]; then
+            p_printf "Killing child processes."
+            # this kills the script including all the child processes
+            kill -- -$$ &
+        else
+            p_printf "Not killing child processes."
         fi
     } 2>| /dev/null || :
     return 0
@@ -171,7 +140,7 @@ parallel-bash() {
     trap '_cleanup::parallel-bash' EXIT
     trap '' TSTP # ignore ctrl + z
 
-    declare NO_OF_JOBS=1 CMD_ARRAY INPUT_ARRAY MAIN_PID TOTAL_INPUT KILL_CHILD_PROCESSES
+    declare NO_OF_JOBS=1 CMD_ARRAY MAIN_PID KILL_CHILD_PROCESSES
     _setup_arguments::parallel-bash "${@}" || return 1
 
     export MAIN_PID="$$"
